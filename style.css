@@ -1,0 +1,190 @@
+/* =====================================================
+   ESTILO GENERAL
+===================================================== */
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f4f4f4;
+  color: #111;
+}
+
+/* =====================================================
+   CONTENEDOR PRINCIPAL
+===================================================== */
+
+.container {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+h1 {
+  text-align: center;
+  margin: 12px 0 28px;
+  font-size: 2.2rem;
+}
+
+h2 {
+  margin: 0 0 20px;
+  font-size: 1.55rem;
+}
+
+h3 {
+  margin: 28px 0 12px;
+  font-size: 1.15rem;
+}
+
+/* =====================================================
+   TARJETAS
+===================================================== */
+
+.card {
+  background: #fff;
+  padding: 24px;
+  margin-bottom: 26px;
+  border-radius: 18px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.descripcion {
+  margin-top: -6px;
+  margin-bottom: 18px;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  opacity: 0.75;
+}
+
+/* =====================================================
+   ESTADOS
+===================================================== */
+
+.oculto {
+  display: none !important;
+}
+
+/* =====================================================
+   FORMULARIOS
+===================================================== */
+
+.item {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 18px;
+}
+
+label {
+  margin-bottom: 7px;
+  font-weight: bold;
+  font-size: 0.95rem;
+}
+
+input {
+  width: 100%;
+  padding: 14px 16px;
+  border: 1px solid #d8d8d8;
+  border-radius: 12px;
+  background: #fff;
+  font-size: 1rem;
+}
+
+input:focus {
+  outline: none;
+  border-color: #111;
+}
+
+/* =====================================================
+   BOTONES
+===================================================== */
+
+button {
+  width: 100%;
+  padding: 16px 20px;
+  margin-top: 14px;
+
+  border: none;
+  border-radius: 14px;
+
+  background: #000;
+  color: #fff;
+
+  font-size: 1.05rem;
+  cursor: pointer;
+}
+
+button + button {
+  margin-top: 16px;
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+button.secundario {
+  background: #777;
+}
+
+/* =====================================================
+   PANTALLA INICIAL
+===================================================== */
+
+#pantallaInicio:not(.oculto) {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+
+#pantallaInicio h2 {
+  margin-bottom: 4px;
+}
+
+#pantallaInicio button {
+  margin: 0;
+}
+
+/* =====================================================
+   RESPONSIVE
+===================================================== */
+
+@media (max-width: 480px) {
+  .container {
+    padding: 16px;
+  }
+
+  h1 {
+    font-size: 2rem;
+  }
+
+  .card {
+    padding: 20px;
+    border-radius: 16px;
+  }
+
+  input,
+  button {
+    font-size: 1rem;
+  }
+}
+
+
+.tabla-existencias {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 16px;
+}
+
+.tabla-existencias th,
+.tabla-existencias td {
+  padding: 10px;
+  border-bottom: 1px solid #ddd;
+  text-align: left;
+}
+
+.tabla-existencias th {
+  font-weight: bold;
+}
+
