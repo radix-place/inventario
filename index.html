@@ -74,37 +74,49 @@
 
   </section>
 
-  <!-- CIERRE -->
+ <!-- CIERRE -->
 
-  <section class="card oculto" id="seccionCierre">
+<section class="card oculto" id="seccionCierre">
 
-    <h2>Cierre del día</h2>
+  <h2>Cierre del día</h2>
 
-    <h3>Peso final de carnes</h3>
+  <!-- BLOQUE 1: CARNES -->
+
+  <div class="bloque-cierre bloque-carnes">
+
+    <h3>1. Cantidad final de carnes</h3>
 
     <p class="descripcion">
-      Registra el peso final de las carnes al terminar la jornada.
+      Registra cuántos kilogramos quedan de cada carne al terminar la jornada.
     </p>
 
     <div id="productosCierre"></div>
 
-    <h3>Platos vendidos</h3>
+  </div>
+
+  <!-- BLOQUE 2: PLATOS -->
+
+  <div class="bloque-cierre bloque-ventas">
+
+    <h3>2. Platos vendidos</h3>
 
     <p class="descripcion">
-      Registra la cantidad de platos vendidos durante el día.
+      Registra cuántos platos se vendieron durante el día.
     </p>
 
     <div id="ventasCierre"></div>
 
-    <button onclick="guardarCierre()">
-      Guardar cierre
-    </button>
+  </div>
 
-    <button class="secundario" onclick="reiniciarApp()">
-      Regresar / reiniciar
-    </button>
+  <button onclick="guardarCierre()">
+    Guardar cierre
+  </button>
 
-  </section>
+  <button class="secundario" onclick="reiniciarApp()">
+    Regresar / reiniciar
+  </button>
+
+</section>
 
   <!-- EXISTENCIAS -->
 

@@ -1,12 +1,16 @@
 // =====================================================
 // INVENTARIO RODIZIO DO SUL
 // Flujo guiado:
-// 1. Registrar apertura: solo carnes
-// 2. Registrar cierre: carnes + platos vendidos
+// 1. Registrar apertura: cantidades iniciales en kg
+// 2. Registrar cierre: cantidades finales en kg + platos vendidos
 // 3. Consultar existencias: lee último cierre registrado
+//
+// No calcula consumo.
+// No resta apertura - cierre.
+// Solo registra cantidades ingresadas por el chef.
 // =====================================================
 
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwjRchjHgJri5ei3sfHlj2sRMmB3qlXBDWBU5PCkRmr1h_Cmh_Z3W0RCORNOMqT4Spf/exec";
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzl_1dtmxpkXiazW0ZtlEplXJa7wWliLsflfwY4DfStyEp3swc5ZV98to7LnpYpFMkm/exec";
 
 // Control para evitar doble envío
 let ENVIANDO = false;
@@ -69,8 +73,6 @@ const productosApertura = document.getElementById("productosApertura");
 const productosCierre = document.getElementById("productosCierre");
 const ventasCierre = document.getElementById("ventasCierre");
 
-// Estos elementos son nuevos.
-// Si todavía no existen en el index.html, el código no se rompe.
 const seccionExistencias = document.getElementById("seccionExistencias");
 const resultadoExistencias = document.getElementById("resultadoExistencias");
 
@@ -107,14 +109,11 @@ function obtenerResponsable() {
 // =====================================================
 
 function ocultarTodo() {
-  pantallaInicio.classList.add("oculto");
-  datosGenerales.classList.add("oculto");
-  seccionApertura.classList.add("oculto");
-  seccionCierre.classList.add("oculto");
-
-  if (seccionExistencias) {
-    seccionExistencias.classList.add("oculto");
-  }
+  if (pantallaInicio) pantallaInicio.classList.add("oculto");
+  if (datosGenerales) datosGenerales.classList.add("oculto");
+  if (seccionApertura) seccionApertura.classList.add("oculto");
+  if (seccionCierre) seccionCierre.classList.add("oculto");
+  if (seccionExistencias) seccionExistencias.classList.add("oculto");
 }
 
 function mostrarApertura() {
@@ -175,10 +174,10 @@ function cargarProductosApertura() {
 
         <input
           type="number"
-          step="0.01"
+          step="0.001"
           min="0"
           data-apertura="${producto}"
-          placeholder="Peso inicial en kg"
+          placeholder="Cantidad inicial en kg"
         >
       </div>
     `;
@@ -199,10 +198,10 @@ function cargarProductosCierre() {
 
         <input
           type="number"
-          step="0.01"
+          step="0.001"
           min="0"
           data-cierre="${producto}"
-          placeholder="Peso final en kg"
+          placeholder="Cantidad final en kg"
         >
       </div>
     `;
@@ -243,10 +242,12 @@ function bloquearBotones() {
   botones.forEach(boton => {
     boton.disabled = true;
 
+    const accion = boton.getAttribute("onclick");
+
     if (
-      boton.getAttribute("onclick") === "guardarApertura()" ||
-      boton.getAttribute("onclick") === "guardarCierre()" ||
-      boton.getAttribute("onclick") === "mostrarExistencias()"
+      accion === "guardarApertura()" ||
+      accion === "guardarCierre()" ||
+      accion === "mostrarExistencias()"
     ) {
       boton.textContent = "Procesando...";
     }
@@ -337,7 +338,8 @@ async function enviarAGoogleSheets(payload) {
 
 // =====================================================
 // CONSULTAR EXISTENCIAS
-// Lee la última fila de la hoja Existencias
+// Lee la última fila de la hoja Existencias.
+// No redondea ni aproxima valores.
 // =====================================================
 
 async function consultarExistencias() {
@@ -403,10 +405,12 @@ function mostrarTablaExistencias(data) {
   `;
 
   Object.entries(data.existencias).forEach(([producto, cantidad]) => {
+    const valor = mostrarValorSinRedondear(cantidad);
+
     html += `
       <tr>
         <td>${producto}</td>
-        <td>${Number(cantidad || 0).toFixed(2)}</td>
+        <td>${valor}</td>
       </tr>
     `;
   });
@@ -420,9 +424,24 @@ function mostrarTablaExistencias(data) {
 }
 
 // =====================================================
+// FORMATO DE VALORES
+// No aproxima.
+// No usa toFixed.
+// Solo muestra 0 si viene vacío.
+// =====================================================
+
+function mostrarValorSinRedondear(valor) {
+  if (valor === "" || valor === null || valor === undefined) {
+    return 0;
+  }
+
+  return valor;
+}
+
+// =====================================================
 // GUARDAR APERTURA
-// Escribe en hoja Inventario:
-// FECHA | PRODUCTO | PESO_APERTURA_KG | ...
+// Escribe cantidades iniciales en kg.
+// No calcula consumo.
 // =====================================================
 
 function guardarApertura() {
@@ -457,12 +476,12 @@ function guardarApertura() {
 
 // =====================================================
 // GUARDAR CIERRE
-// En una sola acción guarda:
-// 1. Peso final de todas las carnes
-// 2. Platos vendidos
+// Guarda:
+// 1. Cantidad final de todas las carnes en kg
+// 2. Número de platos vendidos
 //
-// Regla:
-// Si una carne queda vacía, se guarda como 0 kg.
+// No calcula consumo.
+// Si una carne queda vacía, se registra como 0 kg.
 // =====================================================
 
 function guardarCierre() {
@@ -480,8 +499,7 @@ function guardarCierre() {
   // CARNES
   // -----------------------------------------------------
   // En cierre se envían TODAS las carnes.
-  // Si el campo está vacío, se registra 0.
-  // Esto permite actualizar correctamente la hoja Existencias.
+  // Si el campo queda vacío, se registra 0 kg.
 
   inputsCarnes.forEach(input => {
     const valor = input.value === "" ? 0 : Number(input.value);
@@ -497,8 +515,7 @@ function guardarCierre() {
   // -----------------------------------------------------
   // VENTAS
   // -----------------------------------------------------
-  // Las ventas sí se envían solo si tienen valor.
-  // Si un plato queda vacío, simplemente no se registra.
+  // Las ventas se envían solo si tienen cantidad digitada.
 
   inputsPlatos.forEach(input => {
     if (input.value !== "") {
