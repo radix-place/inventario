@@ -225,3 +225,7 @@ button.secundario {
   font-weight: bold;
   letter-spacing: 0.03em;
 }
+
+.oculto {
+  display: none !important;
+}

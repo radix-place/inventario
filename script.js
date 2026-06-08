@@ -11,7 +11,7 @@
 // Solo registra cantidades ingresadas por el chef.
 // =====================================================
 
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz-nDOggI-YG_NklTdyMQp1xOK8iLd0ZLpR5-51oXPqvljvwl5n46Ayf-hcN70hoUDe/exec";
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz6YgzT6t4EgDjqQ-QsqNOJuDc_hmFyntKPRtGXFhWiVPW-gFMfzylffEupaVtLMePp/exec";
 
 // Control para evitar doble envío
 let ENVIANDO = false;
@@ -408,12 +408,38 @@ function restaurarTextosBotones() {
 
 // =====================================================
 // ENVÍO A GOOGLE SHEETS
+// Aquí se agrega la clave administrada por seguridad.js.
+// Apps Script hace la validación real.
 // =====================================================
 
 async function enviarAGoogleSheets(payload) {
   if (ENVIANDO) {
     return;
   }
+
+  // -----------------------------------------------------
+  // SEGURIDAD
+  // -----------------------------------------------------
+  // seguridad.js debe definir:
+  // function obtenerPasswordSesion() { ... }
+  //
+  // El password NO está escrito aquí.
+  // Solo se toma de la sesión visual y se agrega al payload.
+  // -----------------------------------------------------
+
+  if (typeof obtenerPasswordSesion !== "function") {
+    alert("No se encontró el sistema de seguridad.");
+    return;
+  }
+
+  const password = obtenerPasswordSesion();
+
+  if (!password) {
+    alert("La sesión no tiene clave de acceso. Ingresa nuevamente.");
+    return;
+  }
+
+  payload.password = password;
 
   ENVIANDO = true;
   bloquearBotones();
