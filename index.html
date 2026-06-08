@@ -25,6 +25,10 @@
       Registrar apertura
     </button>
 
+    <button onclick="mostrarEntrada()">
+      Registrar entrada de carne
+    </button>
+
     <button onclick="mostrarCierre()">
       Registrar cierre
     </button>
@@ -59,7 +63,7 @@
     <h2>Apertura del día</h2>
 
     <p class="descripcion">
-      Registra el peso inicial de las carnes al comenzar la jornada.
+      Registra la cantidad inicial de carnes en kg al comenzar la jornada.
     </p>
 
     <div id="productosApertura"></div>
@@ -74,49 +78,71 @@
 
   </section>
 
- <!-- CIERRE -->
+  <!-- ENTRADA DE CARNE -->
 
-<section class="card oculto" id="seccionCierre">
+  <section class="card oculto" id="seccionEntrada">
 
-  <h2>Cierre del día</h2>
-
-  <!-- BLOQUE 1: CARNES -->
-
-  <div class="bloque-cierre bloque-carnes">
-
-    <h3>1. Cantidad final de carnes</h3>
+    <h2>Entrada de carne</h2>
 
     <p class="descripcion">
-      Registra cuántos kilogramos quedan de cada carne al terminar la jornada.
+      Registra carne que llega durante el día. Este registro no modifica la apertura ni el cierre.
     </p>
 
-    <div id="productosCierre"></div>
+    <div id="productosEntrada"></div>
 
-  </div>
+    <button onclick="guardarEntrada()">
+      Guardar entrada
+    </button>
 
-  <!-- BLOQUE 2: PLATOS -->
+    <button class="secundario" onclick="reiniciarApp()">
+      Regresar / reiniciar
+    </button>
 
-  <div class="bloque-cierre bloque-ventas">
+  </section>
 
-    <h3>2. Platos vendidos</h3>
+  <!-- CIERRE -->
 
-    <p class="descripcion">
-      Registra cuántos platos se vendieron durante el día.
-    </p>
+  <section class="card oculto" id="seccionCierre">
 
-    <div id="ventasCierre"></div>
+    <h2>Cierre del día</h2>
 
-  </div>
+    <!-- BLOQUE 1: CARNES -->
 
-  <button onclick="guardarCierre()">
-    Guardar cierre
-  </button>
+    <div class="bloque-cierre bloque-carnes">
 
-  <button class="secundario" onclick="reiniciarApp()">
-    Regresar / reiniciar
-  </button>
+      <h3>1. Cantidad final de carnes</h3>
 
-</section>
+      <p class="descripcion">
+        Registra cuántos kilogramos quedan de cada carne al terminar la jornada.
+      </p>
+
+      <div id="productosCierre"></div>
+
+    </div>
+
+    <!-- BLOQUE 2: PLATOS -->
+
+    <div class="bloque-cierre bloque-ventas">
+
+      <h3>2. Platos vendidos</h3>
+
+      <p class="descripcion">
+        Registra cuántos platos se vendieron durante el día.
+      </p>
+
+      <div id="ventasCierre"></div>
+
+    </div>
+
+    <button onclick="guardarCierre()">
+      Guardar cierre
+    </button>
+
+    <button class="secundario" onclick="reiniciarApp()">
+      Regresar / reiniciar
+    </button>
+
+  </section>
 
   <!-- EXISTENCIAS -->
 

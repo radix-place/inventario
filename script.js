@@ -2,15 +2,16 @@
 // INVENTARIO RODIZIO DO SUL
 // Flujo guiado:
 // 1. Registrar apertura: cantidades iniciales en kg
-// 2. Registrar cierre: cantidades finales en kg + platos vendidos
-// 3. Consultar existencias: lee último cierre registrado
+// 2. Registrar entrada: carne que llega durante el día
+// 3. Registrar cierre: cantidades finales en kg + platos vendidos
+// 4. Consultar existencias: lee último cierre registrado
 //
 // No calcula consumo.
 // No resta apertura - cierre.
 // Solo registra cantidades ingresadas por el chef.
 // =====================================================
 
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzl_1dtmxpkXiazW0ZtlEplXJa7wWliLsflfwY4DfStyEp3swc5ZV98to7LnpYpFMkm/exec";
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz-nDOggI-YG_NklTdyMQp1xOK8iLd0ZLpR5-51oXPqvljvwl5n46Ayf-hcN70hoUDe/exec";
 
 // Control para evitar doble envío
 let ENVIANDO = false;
@@ -67,13 +68,15 @@ const pantallaInicio = document.getElementById("pantallaInicio");
 const datosGenerales = document.getElementById("datosGenerales");
 
 const seccionApertura = document.getElementById("seccionApertura");
+const seccionEntrada = document.getElementById("seccionEntrada");
 const seccionCierre = document.getElementById("seccionCierre");
+const seccionExistencias = document.getElementById("seccionExistencias");
 
 const productosApertura = document.getElementById("productosApertura");
+const productosEntrada = document.getElementById("productosEntrada");
 const productosCierre = document.getElementById("productosCierre");
 const ventasCierre = document.getElementById("ventasCierre");
 
-const seccionExistencias = document.getElementById("seccionExistencias");
 const resultadoExistencias = document.getElementById("resultadoExistencias");
 
 // =====================================================
@@ -105,6 +108,59 @@ function obtenerResponsable() {
 }
 
 // =====================================================
+// VALIDACIÓN Y CONVERSIÓN DE KILOGRAMOS
+//
+// Regla:
+// - Se aceptan enteros o números con máximo dos decimales.
+// - Se acepta punto o coma decimal.
+// - No se aceptan tres decimales.
+// - No se redondea silenciosamente.
+// - Si el chef escribe 5.05, se envía 5.05.
+// - Si el chef escribe 1.79, se envía 1.79.
+// =====================================================
+
+function normalizarKg(valor) {
+  if (valor === "" || valor === null || valor === undefined) {
+    return "";
+  }
+
+  const texto = String(valor).trim().replace(",", ".");
+
+  // Válidos: 5, 5.0, 5.05, 1.79, 0.53
+  // Inválidos: 5.048, 1.789, 2..4, abc
+  if (!/^\d+(\.\d{1,2})?$/.test(texto)) {
+    return null;
+  }
+
+  const partes = texto.split(".");
+  const entero = partes[0];
+  const decimal = partes[1] || "";
+
+  const centesimasTexto = decimal.padEnd(2, "0");
+
+  const totalCentesimas =
+    Number(entero) * 100 + Number(centesimasTexto);
+
+  return totalCentesimas / 100;
+}
+
+function validarKg(valor, nombreCampo) {
+  const kg = normalizarKg(valor);
+
+  if (kg === null) {
+    alert(
+      "El valor de " +
+      nombreCampo +
+      " no es válido. Usa máximo dos decimales. Ejemplo: 5.05"
+    );
+
+    return null;
+  }
+
+  return kg;
+}
+
+// =====================================================
 // CONTROL DE PANTALLAS
 // =====================================================
 
@@ -112,6 +168,7 @@ function ocultarTodo() {
   if (pantallaInicio) pantallaInicio.classList.add("oculto");
   if (datosGenerales) datosGenerales.classList.add("oculto");
   if (seccionApertura) seccionApertura.classList.add("oculto");
+  if (seccionEntrada) seccionEntrada.classList.add("oculto");
   if (seccionCierre) seccionCierre.classList.add("oculto");
   if (seccionExistencias) seccionExistencias.classList.add("oculto");
 }
@@ -125,6 +182,20 @@ function mostrarApertura() {
   seccionApertura.classList.remove("oculto");
 
   cargarProductosApertura();
+}
+
+function mostrarEntrada() {
+  if (ENVIANDO) return;
+
+  ocultarTodo();
+
+  datosGenerales.classList.remove("oculto");
+
+  if (seccionEntrada) {
+    seccionEntrada.classList.remove("oculto");
+  }
+
+  cargarProductosEntrada();
 }
 
 function mostrarCierre() {
@@ -173,15 +244,46 @@ function cargarProductosApertura() {
         <label>${producto}</label>
 
         <input
-          type="number"
-          step="0.001"
-          min="0"
+          type="text"
+          inputmode="decimal"
           data-apertura="${producto}"
-          placeholder="Cantidad inicial en kg"
+          placeholder="Cantidad inicial en kg. Ej: 5.05"
         >
       </div>
     `;
   });
+}
+
+// =====================================================
+// CARGAR ENTRADA DE CARNE
+// =====================================================
+
+function cargarProductosEntrada() {
+  if (!productosEntrada) return;
+
+  productosEntrada.innerHTML = `
+    <div class="item">
+      <label for="productoEntrada">Producto</label>
+
+      <select id="productoEntrada">
+        <option value="">Selecciona una carne</option>
+        ${productos.map(producto => `
+          <option value="${producto}">${producto}</option>
+        `).join("")}
+      </select>
+    </div>
+
+    <div class="item">
+      <label for="cantidadEntrada">Cantidad recibida en kg</label>
+
+      <input
+        type="text"
+        inputmode="decimal"
+        id="cantidadEntrada"
+        placeholder="Cantidad en kg. Ej: 5.05"
+      >
+    </div>
+  `;
 }
 
 // =====================================================
@@ -197,11 +299,10 @@ function cargarProductosCierre() {
         <label>${producto}</label>
 
         <input
-          type="number"
-          step="0.001"
-          min="0"
+          type="text"
+          inputmode="decimal"
           data-cierre="${producto}"
-          placeholder="Cantidad final en kg"
+          placeholder="Cantidad final en kg. Ej: 5.05"
         >
       </div>
     `;
@@ -246,6 +347,7 @@ function bloquearBotones() {
 
     if (
       accion === "guardarApertura()" ||
+      accion === "guardarEntrada()" ||
       accion === "guardarCierre()" ||
       accion === "mostrarExistencias()"
     ) {
@@ -274,6 +376,10 @@ function restaurarTextosBotones() {
       boton.textContent = "Registrar apertura";
     }
 
+    if (accion === "mostrarEntrada()") {
+      boton.textContent = "Registrar entrada de carne";
+    }
+
     if (accion === "mostrarCierre()") {
       boton.textContent = "Registrar cierre";
     }
@@ -284,6 +390,10 @@ function restaurarTextosBotones() {
 
     if (accion === "guardarApertura()") {
       boton.textContent = "Guardar apertura";
+    }
+
+    if (accion === "guardarEntrada()") {
+      boton.textContent = "Guardar entrada";
     }
 
     if (accion === "guardarCierre()") {
@@ -339,7 +449,7 @@ async function enviarAGoogleSheets(payload) {
 // =====================================================
 // CONSULTAR EXISTENCIAS
 // Lee la última fila de la hoja Existencias.
-// No redondea ni aproxima valores.
+// No redondea visualmente.
 // =====================================================
 
 async function consultarExistencias() {
@@ -405,7 +515,7 @@ function mostrarTablaExistencias(data) {
   `;
 
   Object.entries(data.existencias).forEach(([producto, cantidad]) => {
-    const valor = mostrarValorSinRedondear(cantidad);
+    const valor = mostrarValor(cantidad);
 
     html += `
       <tr>
@@ -423,14 +533,7 @@ function mostrarTablaExistencias(data) {
   resultadoExistencias.innerHTML = html;
 }
 
-// =====================================================
-// FORMATO DE VALORES
-// No aproxima.
-// No usa toFixed.
-// Solo muestra 0 si viene vacío.
-// =====================================================
-
-function mostrarValorSinRedondear(valor) {
+function mostrarValor(valor) {
   if (valor === "" || valor === null || valor === undefined) {
     return 0;
   }
@@ -452,16 +555,22 @@ function guardarApertura() {
 
   const registros = [];
 
-  inputs.forEach(input => {
+  for (const input of inputs) {
     if (input.value !== "") {
+      const valorKg = validarKg(input.value, input.dataset.apertura);
+
+      if (valorKg === null) {
+        return;
+      }
+
       registros.push({
         fecha: fechaActual(),
         producto: input.dataset.apertura,
-        pesoAperturaKg: Number(input.value),
+        pesoAperturaKg: valorKg,
         responsableApertura: responsable
       });
     }
-  });
+  }
 
   if (registros.length === 0) {
     alert("No hay datos de apertura para guardar.");
@@ -471,6 +580,53 @@ function guardarApertura() {
   enviarAGoogleSheets({
     accion: "APERTURA",
     registros: registros
+  });
+}
+
+// =====================================================
+// GUARDAR ENTRADA DE CARNE
+// Registra carne que llega durante el día.
+// No modifica apertura.
+// No modifica cierre.
+// No modifica existencias.
+// Solo agrega una fila en hoja Entradas.
+// =====================================================
+
+function guardarEntrada() {
+  if (ENVIANDO) return;
+
+  const responsable = obtenerResponsable();
+
+  const productoInput = document.getElementById("productoEntrada");
+  const cantidadInput = document.getElementById("cantidadEntrada");
+
+  if (!productoInput || !cantidadInput) {
+    alert("Faltan los campos de entrada en el formulario.");
+    return;
+  }
+
+  const producto = productoInput.value;
+
+  if (producto === "") {
+    alert("Selecciona una carne.");
+    return;
+  }
+
+  const cantidad = validarKg(cantidadInput.value, "Cantidad recibida");
+
+  if (cantidad === null || cantidad === "" || cantidad <= 0) {
+    alert("Ingresa una cantidad válida en kg.");
+    return;
+  }
+
+  enviarAGoogleSheets({
+    accion: "ENTRADA",
+    entrada: {
+      fecha: fechaActual(),
+      producto: producto,
+      cantidadKg: cantidad,
+      responsable: responsable
+    }
   });
 }
 
@@ -501,32 +657,51 @@ function guardarCierre() {
   // En cierre se envían TODAS las carnes.
   // Si el campo queda vacío, se registra 0 kg.
 
-  inputsCarnes.forEach(input => {
-    const valor = input.value === "" ? 0 : Number(input.value);
+  for (const input of inputsCarnes) {
+    let valorKg = 0;
+
+    if (input.value !== "") {
+      valorKg = validarKg(input.value, input.dataset.cierre);
+
+      if (valorKg === null) {
+        return;
+      }
+    }
 
     carnes.push({
       fecha: fechaActual(),
       producto: input.dataset.cierre,
-      pesoCierreKg: valor,
+      pesoCierreKg: valorKg,
       responsableCierre: responsable
     });
-  });
+  }
 
   // -----------------------------------------------------
   // VENTAS
   // -----------------------------------------------------
   // Las ventas se envían solo si tienen cantidad digitada.
 
-  inputsPlatos.forEach(input => {
+  for (const input of inputsPlatos) {
     if (input.value !== "") {
+      const cantidad = Number(input.value);
+
+      if (!Number.isInteger(cantidad) || cantidad < 0) {
+        alert(
+          "La cantidad vendida de " +
+          input.dataset.plato +
+          " debe ser un número entero."
+        );
+        return;
+      }
+
       ventas.push({
         fecha: fechaActual(),
         plato: input.dataset.plato,
-        cantidad: Number(input.value),
+        cantidad: cantidad,
         responsable: responsable
       });
     }
-  });
+  }
 
   if (carnes.length === 0 && ventas.length === 0) {
     alert("No hay datos de cierre para guardar.");
@@ -549,9 +724,14 @@ function limpiarCampos() {
     input.value = "";
   });
 
-  productosApertura.innerHTML = "";
-  productosCierre.innerHTML = "";
-  ventasCierre.innerHTML = "";
+  document.querySelectorAll("select").forEach(select => {
+    select.value = "";
+  });
+
+  if (productosApertura) productosApertura.innerHTML = "";
+  if (productosEntrada) productosEntrada.innerHTML = "";
+  if (productosCierre) productosCierre.innerHTML = "";
+  if (ventasCierre) ventasCierre.innerHTML = "";
 
   if (resultadoExistencias) {
     resultadoExistencias.innerHTML = "";
