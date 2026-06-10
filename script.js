@@ -1,17 +1,26 @@
 // =====================================================
 // INVENTARIO RODIZIO DO SUL
-// Flujo guiado:
-// 1. Registrar apertura: cantidades iniciales en kg
-// 2. Registrar entrada: carne que llega durante el día
-// 3. Registrar cierre: cantidades finales en kg + platos vendidos
-// 4. Consultar existencias: lee último cierre registrado
 //
+// Flujo operativo simplificado:
+//
+// 1. Consultar existencias:
+//    Lee el último cierre registrado.
+//    Ese cierre funciona como punto de partida operativo.
+//
+// 2. Registrar entrada de carne:
+//    Registra una o varias carnes que llegan durante el día.
+//
+// 3. Registrar cierre:
+//    Registra las cantidades finales en cocina
+//    y los platos vendidos.
+//
+// No se registra apertura manual.
 // No calcula consumo.
 // No resta apertura - cierre.
-// Solo registra cantidades ingresadas por el chef.
+// La existencia vigente nace del último cierre.
 // =====================================================
 
-const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbz6YgzT6t4EgDjqQ-QsqNOJuDc_hmFyntKPRtGXFhWiVPW-gFMfzylffEupaVtLMePp/exec";
+const GOOGLE_SCRIPT_URL = "https://script.google.com/macros/s/AKfycbwRGfcdwBVZxqu4iB1OCk6OIrAIFT1kH7u5gyoJzXXMA__ySt5EcClbNuo4AX5Xhm3d/exec";
 
 // Control para evitar doble envío
 let ENVIANDO = false;
@@ -80,6 +89,34 @@ const ventasCierre = document.getElementById("ventasCierre");
 const resultadoExistencias = document.getElementById("resultadoExistencias");
 
 // =====================================================
+// INICIALIZACIÓN
+// =====================================================
+
+document.addEventListener("DOMContentLoaded", () => {
+  ocultarBotonApertura();
+});
+
+// =====================================================
+// OCULTAR APERTURA OBSOLETA
+// =====================================================
+
+function ocultarBotonApertura() {
+  const botones = document.querySelectorAll("button");
+
+  botones.forEach(boton => {
+    const accion = boton.getAttribute("onclick");
+
+    if (accion === "mostrarApertura()") {
+      boton.style.display = "none";
+    }
+  });
+
+  if (seccionApertura) {
+    seccionApertura.classList.add("oculto");
+  }
+}
+
+// =====================================================
 // FECHA LOCAL
 // =====================================================
 
@@ -115,8 +152,6 @@ function obtenerResponsable() {
 // - Se acepta punto o coma decimal.
 // - No se aceptan tres decimales.
 // - No se redondea silenciosamente.
-// - Si el chef escribe 5.05, se envía 5.05.
-// - Si el chef escribe 1.79, se envía 1.79.
 // =====================================================
 
 function normalizarKg(valor) {
@@ -173,15 +208,10 @@ function ocultarTodo() {
   if (seccionExistencias) seccionExistencias.classList.add("oculto");
 }
 
+// Apertura queda anulada.
+// Se conserva para evitar errores si el HTML todavía tiene onclick="mostrarApertura()".
 function mostrarApertura() {
-  if (ENVIANDO) return;
-
-  ocultarTodo();
-
-  datosGenerales.classList.remove("oculto");
-  seccionApertura.classList.remove("oculto");
-
-  cargarProductosApertura();
+  mostrarExistencias();
 }
 
 function mostrarEntrada() {
@@ -189,7 +219,9 @@ function mostrarEntrada() {
 
   ocultarTodo();
 
-  datosGenerales.classList.remove("oculto");
+  if (datosGenerales) {
+    datosGenerales.classList.remove("oculto");
+  }
 
   if (seccionEntrada) {
     seccionEntrada.classList.remove("oculto");
@@ -203,8 +235,13 @@ function mostrarCierre() {
 
   ocultarTodo();
 
-  datosGenerales.classList.remove("oculto");
-  seccionCierre.classList.remove("oculto");
+  if (datosGenerales) {
+    datosGenerales.classList.remove("oculto");
+  }
+
+  if (seccionCierre) {
+    seccionCierre.classList.remove("oculto");
+  }
 
   cargarProductosCierre();
   cargarVentasCierre();
@@ -228,62 +265,89 @@ function reiniciarApp() {
   limpiarCampos();
   ocultarTodo();
 
-  pantallaInicio.classList.remove("oculto");
+  if (pantallaInicio) {
+    pantallaInicio.classList.remove("oculto");
+  }
+
+  ocultarBotonApertura();
 }
 
 // =====================================================
-// CARGAR PRODUCTOS DE APERTURA
-// =====================================================
-
-function cargarProductosApertura() {
-  productosApertura.innerHTML = "";
-
-  productos.forEach(producto => {
-    productosApertura.innerHTML += `
-      <div class="item">
-        <label>${producto}</label>
-
-        <input
-          type="text"
-          inputmode="decimal"
-          data-apertura="${producto}"
-          placeholder="Cantidad inicial en kg. Ej: 5.05"
-        >
-      </div>
-    `;
-  });
-}
-
-// =====================================================
-// CARGAR ENTRADA DE CARNE
+// ENTRADAS DE CARNE
+// Permite registrar una o varias carnes en un solo envío.
 // =====================================================
 
 function cargarProductosEntrada() {
   if (!productosEntrada) return;
 
   productosEntrada.innerHTML = `
-    <div class="item">
-      <label for="productoEntrada">Producto</label>
+    <p class="descripcion">
+      Registra las carnes que ingresan a cocina durante el día.
+      Puedes agregar una o varias entradas antes de guardar.
+    </p>
 
-      <select id="productoEntrada">
-        <option value="">Selecciona una carne</option>
-        ${productos.map(producto => `
-          <option value="${producto}">${producto}</option>
-        `).join("")}
-      </select>
-    </div>
+    <div id="listaEntradasCarne"></div>
 
-    <div class="item">
-      <label for="cantidadEntrada">Cantidad recibida en kg</label>
-
-      <input
-        type="text"
-        inputmode="decimal"
-        id="cantidadEntrada"
-        placeholder="Cantidad en kg. Ej: 5.05"
-      >
-    </div>
+    <button type="button" onclick="agregarFilaEntrada()">
+      Agregar otra carne
+    </button>
   `;
+
+  agregarFilaEntrada();
+}
+
+function agregarFilaEntrada() {
+  const lista = document.getElementById("listaEntradasCarne");
+
+  if (!lista) return;
+
+  const fila = document.createElement("div");
+  fila.className = "item entrada-carne";
+
+  fila.innerHTML = `
+    <label>Producto</label>
+
+    <select data-entrada-producto>
+      <option value="">Selecciona una carne</option>
+      ${productos.map(producto => `
+        <option value="${producto}">${producto}</option>
+      `).join("")}
+    </select>
+
+    <label>Cantidad recibida en kg</label>
+
+    <input
+      type="text"
+      inputmode="decimal"
+      data-entrada-cantidad
+      placeholder="Cantidad en kg. Ej: 5.05"
+    >
+
+    <button type="button" onclick="eliminarFilaEntrada(this)">
+      Quitar
+    </button>
+  `;
+
+  lista.appendChild(fila);
+}
+
+function eliminarFilaEntrada(boton) {
+  const lista = document.getElementById("listaEntradasCarne");
+
+  if (!lista) return;
+
+  const filas = lista.querySelectorAll(".entrada-carne");
+
+  if (filas.length <= 1) {
+    alert("Debe quedar al menos una fila de entrada.");
+    return;
+  }
+
+  const fila = boton.closest(".entrada-carne");
+
+  if (fila) {
+    fila.remove();
+  }
 }
 
 // =====================================================
@@ -291,6 +355,8 @@ function cargarProductosEntrada() {
 // =====================================================
 
 function cargarProductosCierre() {
+  if (!productosCierre) return;
+
   productosCierre.innerHTML = "";
 
   productos.forEach(producto => {
@@ -314,6 +380,8 @@ function cargarProductosCierre() {
 // =====================================================
 
 function cargarVentasCierre() {
+  if (!ventasCierre) return;
+
   ventasCierre.innerHTML = "";
 
   platos.forEach(plato => {
@@ -346,7 +414,6 @@ function bloquearBotones() {
     const accion = boton.getAttribute("onclick");
 
     if (
-      accion === "guardarApertura()" ||
       accion === "guardarEntrada()" ||
       accion === "guardarCierre()" ||
       accion === "mostrarExistencias()"
@@ -364,6 +431,7 @@ function desbloquearBotones() {
   });
 
   restaurarTextosBotones();
+  ocultarBotonApertura();
 }
 
 function restaurarTextosBotones() {
@@ -388,10 +456,6 @@ function restaurarTextosBotones() {
       boton.textContent = "Consultar existencias";
     }
 
-    if (accion === "guardarApertura()") {
-      boton.textContent = "Guardar apertura";
-    }
-
     if (accion === "guardarEntrada()") {
       boton.textContent = "Guardar entrada";
     }
@@ -402,6 +466,10 @@ function restaurarTextosBotones() {
 
     if (accion === "reiniciarApp()") {
       boton.textContent = "Regresar / reiniciar";
+    }
+
+    if (accion === "agregarFilaEntrada()") {
+      boton.textContent = "Agregar otra carne";
     }
   });
 }
@@ -460,7 +528,12 @@ async function enviarAGoogleSheets(payload) {
 
     limpiarCampos();
     ocultarTodo();
-    pantallaInicio.classList.remove("oculto");
+
+    if (pantallaInicio) {
+      pantallaInicio.classList.remove("oculto");
+    }
+
+    ocultarBotonApertura();
 
   } catch (error) {
     console.error("Error al enviar:", error);
@@ -475,7 +548,6 @@ async function enviarAGoogleSheets(payload) {
 // =====================================================
 // CONSULTAR EXISTENCIAS
 // Lee la última fila de la hoja Existencias.
-// No redondea visualmente.
 // =====================================================
 
 async function consultarExistencias() {
@@ -527,7 +599,7 @@ async function consultarExistencias() {
 function mostrarTablaExistencias(data) {
   let html = `
     <p class="descripcion">
-      Existencias al cierre del <strong>${data.fecha}</strong>
+      Existencias registradas al cierre del <strong>${data.fecha}</strong>
     </p>
 
     <table class="tabla-existencias">
@@ -569,98 +641,97 @@ function mostrarValor(valor) {
 
 // =====================================================
 // GUARDAR APERTURA
-// Escribe cantidades iniciales en kg.
-// No calcula consumo.
+// Función anulada.
+// Se conserva solo para evitar errores si queda algún botón viejo.
 // =====================================================
 
 function guardarApertura() {
-  if (ENVIANDO) return;
-
-  const responsable = obtenerResponsable();
-  const inputs = document.querySelectorAll("[data-apertura]");
-
-  const registros = [];
-
-  for (const input of inputs) {
-    if (input.value !== "") {
-      const valorKg = validarKg(input.value, input.dataset.apertura);
-
-      if (valorKg === null) {
-        return;
-      }
-
-      registros.push({
-        fecha: fechaActual(),
-        producto: input.dataset.apertura,
-        pesoAperturaKg: valorKg,
-        responsableApertura: responsable
-      });
-    }
-  }
-
-  if (registros.length === 0) {
-    alert("No hay datos de apertura para guardar.");
-    return;
-  }
-
-  enviarAGoogleSheets({
-    accion: "APERTURA",
-    registros: registros
-  });
+  alert(
+    "La apertura manual ya no se registra. Consulta existencias y registra únicamente las entradas de carne del día."
+  );
 }
 
 // =====================================================
 // GUARDAR ENTRADA DE CARNE
-// Registra carne que llega durante el día.
-// No modifica apertura.
+//
+// Registra una o varias carnes que llegan durante el día.
 // No modifica cierre.
-// No modifica existencias.
-// Solo agrega una fila en hoja Entradas.
+// No modifica existencias directamente.
+// Solo agrega filas en hoja Entradas.
 // =====================================================
 
 function guardarEntrada() {
   if (ENVIANDO) return;
 
   const responsable = obtenerResponsable();
+  const filas = document.querySelectorAll(".entrada-carne");
 
-  const productoInput = document.getElementById("productoEntrada");
-  const cantidadInput = document.getElementById("cantidadEntrada");
-
-  if (!productoInput || !cantidadInput) {
-    alert("Faltan los campos de entrada en el formulario.");
+  if (!filas || filas.length === 0) {
+    alert("No hay filas de entrada para guardar.");
     return;
   }
 
-  const producto = productoInput.value;
+  const registros = [];
 
-  if (producto === "") {
-    alert("Selecciona una carne.");
-    return;
+  for (const fila of filas) {
+    const productoInput = fila.querySelector("[data-entrada-producto]");
+    const cantidadInput = fila.querySelector("[data-entrada-cantidad]");
+
+    if (!productoInput || !cantidadInput) {
+      alert("Faltan campos en una de las filas de entrada.");
+      return;
+    }
+
+    const producto = productoInput.value;
+    const cantidadTexto = cantidadInput.value.trim();
+
+    const filaVacia = producto === "" && cantidadTexto === "";
+
+    if (filaVacia) {
+      continue;
+    }
+
+    if (producto === "") {
+      alert("Selecciona una carne en todas las filas diligenciadas.");
+      return;
+    }
+
+    if (cantidadTexto === "") {
+      alert("Ingresa la cantidad recibida para " + producto + ".");
+      return;
+    }
+
+    const cantidad = validarKg(cantidadTexto, "Cantidad recibida de " + producto);
+
+    if (cantidad === null || cantidad === "" || cantidad <= 0) {
+      alert("Ingresa una cantidad válida en kg para " + producto + ".");
+      return;
+    }
+
+    registros.push({
+      fecha: fechaActual(),
+      producto: producto,
+      cantidadKg: cantidad,
+      responsable: responsable
+    });
   }
 
-  const cantidad = validarKg(cantidadInput.value, "Cantidad recibida");
-
-  if (cantidad === null || cantidad === "" || cantidad <= 0) {
-    alert("Ingresa una cantidad válida en kg.");
+  if (registros.length === 0) {
+    alert("No hay entradas de carne para guardar.");
     return;
   }
 
   enviarAGoogleSheets({
     accion: "ENTRADA",
-    entrada: {
-      fecha: fechaActual(),
-      producto: producto,
-      cantidadKg: cantidad,
-      responsable: responsable
-    }
+    entradas: registros
   });
 }
 
 // =====================================================
 // GUARDAR CIERRE
 // Guarda:
-// 1. Cantidad final de todas las carnes en kg
-// 2. Número de platos vendidos
+// 1. Cantidad final de todas las carnes en kg.
+// 2. Número de platos vendidos.
 //
 // No calcula consumo.
 // Si una carne queda vacía, se registra como 0 kg.

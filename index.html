@@ -52,10 +52,10 @@
 
     <section class="card" id="pantallaInicio">
 
-      <h2>Selecciona el registro</h2>
+      <h2>Selecciona una opción</h2>
 
-      <button onclick="mostrarApertura()">
-        Registrar apertura
+      <button onclick="mostrarExistencias()">
+        Consultar existencias
       </button>
 
       <button onclick="mostrarEntrada()">
@@ -64,10 +64,6 @@
 
       <button onclick="mostrarCierre()">
         Registrar cierre
-      </button>
-
-      <button onclick="mostrarExistencias()">
-        Consultar existencias
       </button>
 
       <button class="secundario" onclick="cerrarSesion()">
@@ -93,28 +89,6 @@
 
     </section>
 
-    <!-- APERTURA -->
-
-    <section class="card oculto" id="seccionApertura">
-
-      <h2>Apertura del día</h2>
-
-      <p class="descripcion">
-        Registra la cantidad inicial de carnes en kg al comenzar la jornada.
-      </p>
-
-      <div id="productosApertura"></div>
-
-      <button onclick="guardarApertura()">
-        Guardar apertura
-      </button>
-
-      <button class="secundario" onclick="reiniciarApp()">
-        Regresar / reiniciar
-      </button>
-
-    </section>
-
     <!-- ENTRADA DE CARNE -->
 
     <section class="card oculto" id="seccionEntrada">
@@ -122,7 +96,7 @@
       <h2>Entrada de carne</h2>
 
       <p class="descripcion">
-        Registra carne que llega durante el día. Este registro no modifica la apertura ni el cierre.
+        Registra una o varias carnes que ingresan a cocina durante el día.
       </p>
 
       <div id="productosEntrada"></div>
